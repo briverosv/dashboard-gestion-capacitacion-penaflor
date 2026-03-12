@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Capacitaciones de Emprendimiento</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Plugin para etiquetas de datos -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .kpi-main-card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center; 
+            text-align: center;
+        }
+        .kpi-main-value {
+            font-size: 2.25rem;
+            font-weight: bold;
+            color: #1a202c;
+        }
+        .nav-link {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            color: #4a5568;
+            transition: all 0.2s ease;
+        }
+        .nav-link.active, .nav-link:hover {
+            background-color: #e5e7eb;
+            color: #1f2937;
+        }
+        .chart-title {
+             text-align: center;
+             font-size: 1.125rem;
+             font-weight: 600;
+             margin-bottom: 1rem;
+             color: #374151;
+        }
+        .kpi-grid {
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+        }
+        @media (min-width: 640px) {
+            .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (min-width: 1024px) {
+            .kpi-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <div class="dashboard-container">
+        
+        <header class="flex flex-col sm:flex-row justify-between items-center mb-6 p-4 bg-white rounded-xl shadow-md">
+            <div class="flex flex-col mb-2 sm:mb-0">
+                <div class="text-xl font-bold text-gray-800">Dashboard de Capacitaciones de Emprendimiento</div>
+                <div class="text-sm text-gray-600 font-medium">Bastián Riveros - Encargado de Formación de Emprendimiento</div>
+            </div>
+            <nav class="flex space-x-2">
+                <button id="nav-resumen" class="nav-link active">Resumen</button>
+                <button id="nav-asistencia" class="nav-link">Análisis de Asistencia</button>
+            </nav>
+        </header>
+
+        <main class="space-y-6">
+            <div id="contenido-resumen">
+                 <div class="grid kpi-grid gap-5 mb-8">
+                    <div class="kpi-main-card">
+                        <h3 class="text-sm font-medium text-gray-500">Instancias de Capacitación</h3>
+                        <p id="kpi-total-programas" class="kpi-main-value text-blue-700 mt-2"></p>
+                        <span id="kpi-total-programas-subtext" class="text-xs text-gray-500"></span>
+                    </div>
+                    <div class="kpi-main-card">
+                        <h3 class="text-sm font-medium text-gray-500">Total de asistencias a capacitación</h3>
+                        <p id="kpi-total-personas" class="kpi-main-value text-green-700 mt-2"></p>
+                    </div>
+                    <div class="kpi-main-card">
+                        <h3 class="text-sm font-medium text-gray-500">Asistencia Promedio</h3>
+                        <p id="kpi-avg-asistencia" class="kpi-main-value text-purple-700 mt-2"></p>
+                    </div>
+                    <div class="kpi-main-card">
+                        <h3 class="text-sm font-medium text-gray-500">Total Cupos/Meta</h3>
+                        <p id="kpi-total-cupos" class="kpi-main-value text-orange-700 mt-2"></p>
+                    </div>
+                    <div class="kpi-main-card">
+                        <h3 class="text-sm font-medium text-gray-500">Total Horas Capacitación</h3>
+                        <p id="kpi-total-horas" class="kpi-main-value text-teal-700 mt-2"></p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <div class="card">
+                        <h3 class="chart-title">Asistencias por Tipo de Capacitación</h3>
+                        <canvas id="chartParticipantesPorTipo"></canvas>
+                    </div>
+                    <div class="card">
+                        <h3 class="chart-title">Cupos por Colaborador</h3>
+                        <canvas id="chartCuposPorColaborador"></canvas>
+                    </div>
+                </div>
+                <div class="card mb-8">
+                    <h3 class="chart-title">Instancias y Asistentes por Mes</h3>
+                    <div style="height: 500px; position: relative;">
+                        <canvas id="chartProgramasPorMes"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div id="contenido-asistencia" class="hidden">
+                <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Análisis de asistencia</h1>
+                <div class="card mb-6">
+                    <h3 class="text-lg font-semibold mb-3 text-gray-700 text-center">Simbología de Asistencia</h3>
+                    <div class="flex flex-wrap gap-x-6 gap-y-2 justify-center">
+                        <div class="flex items-center">
+                            <span class="w-5 h-5 rounded-full bg-green-500 border border-green-700 mr-2"></span>
+                            <span><b>Exitosa:</b> 75% o más</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="w-5 h-5 rounded-full bg-yellow-400 border border-yellow-600 mr-2"></span>
+                            <span><b>Media:</b> 50% a 74.9%</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="w-5 h-5 rounded-full bg-red-500 border border-red-700 mr-2"></span>
+                            <span><b>Baja:</b> Menos de 50%</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="graficos-asistencia-container" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        Chart.register(ChartDataLabels);
+        Chart.defaults.set('plugins.datalabels', { display: false });
+
+        const dataOriginal = [
+            { "Nombre Taller/Curso": "Ley de Cumplimiento Tributario", "Taller/Curso": "Taller", "N° Clase": 1, "Fechas": "2025-05-27", "Cupos": 30, "Nº Participantes": 10, "% de asistencia": 0.33, "Duración (hrs)": 2, "Colaborador": "DEDECON" },
+            { "Nombre Taller/Curso": "Escuela de Emprendimiento Nivel Básico", "Taller/Curso": "Curso", "N° Clase": 1, "Fechas": "2025-06-26", "Cupos": 40, "Nº Participantes": 23, "% de asistencia": 0.58, "Duración (hrs)": 3, "Colaborador": "IMAC" },
+            { "Nombre Taller/Curso": "Ley de Cumplimiento Tributario", "Taller/Curso": "Taller", "N° Clase": 2, "Fechas": "2025-07-03", "Cupos": 30, "Nº Participantes": 36, "% de asistencia": 1.20, "Duración (hrs)": 2, "Colaborador": "DEDECON" },
+            { "Nombre Taller/Curso": "Academia de Mujeres Empresarias", "Taller/Curso": "Curso", "N° Clase": 1, "Fechas": "2025-07-08", "Cupos": 40, "Nº Participantes": 42, "% de asistencia": 1.05, "Duración (hrs)": 3, "Colaborador": "SERCOTEC" },
+            { "Nombre Taller/Curso": "Academia de Mujeres Empresarias", "Taller/Curso": "Curso", "N° Clase": 2, "Fechas": "2025-07-10", "Cupos": 40, "Nº Participantes": 35, "% de asistencia": 0.88, "Duración (hrs)": 3, "Colaborador": "SERCOTEC" },
+            { "Nombre Taller/Curso": "Academia de Mujeres Empresarias", "Taller/Curso": "Curso", "N° Clase": 3, "Fechas": "2025-07-15", "Cupos": 40, "Nº Participantes": 30, "% de asistencia": 0.75, "Duración (hrs)": 3, "Colaborador": "SERCOTEC" },
+            { "Nombre Taller/Curso": "Academia de Mujeres Empresarias", "Taller/Curso": "Curso", "N° Clase": 4, "Fechas": "2025-07-17", "Cupos": 40, "Nº Participantes": 30, "% de asistencia": 0.75, "Duración (hrs)": 3, "Colaborador": "SERCOTEC" },
+            { "Nombre Taller/Curso": "Academia de Mujeres Empresarias", "Taller/Curso": "Curso", "N° Clase": 5, "Fechas": "2025-07-22", "Cupos": 40, "Nº Participantes": 31, "% de asistencia": 0.78, "Duración (hrs)": 3, "Colaborador": "SERCOTEC" },
+            { "Nombre Taller/Curso": "Ley de Cumplimiento Tributario", "Taller/Curso": "Taller", "N° Clase": 3, "Fechas": "2025-07-25", "Cupos": 30, "Nº Participantes": 36, "% de asistencia": 1.20, "Duración (hrs)": 2, "Colaborador": "DEDECON" },
+            { "Nombre Taller/Curso": "Academia de Mujeres Empresarias", "Taller/Curso": "Curso", "N° Clase": 6, "Fechas": "2025-07-25", "Cupos": 40, "Nº Participantes": 35, "% de asistencia": 0.88, "Duración (hrs)": 3, "Colaborador": "SERCOTEC" },
+            { "Nombre Taller/Curso": "Academia de Mujeres Empresarias", "Taller/Curso": "Curso", "N° Clase": 7, "Fechas": "2025-07-29", "Cupos": 40, "Nº Participantes": 33, "% de asistencia": 0.83, "Duración (hrs)": 3, "Colaborador": "SERCOTEC" },
+            { "Nombre Taller/Curso": "Escuela de Emprendimiento Nivel Básico", "Taller/Curso": "Curso", "N° Clase": 2, "Fechas": "2025-07-30", "Cupos": 40, "Nº Participantes": 28, "% de asistencia": 0.70, "Duración (hrs)": 3, "Colaborador": "IMAC" },
+            { "Nombre Taller/Curso": "Academia de Mujeres Empresarias", "Taller/Curso": "Curso", "N° Clase": 8, "Fechas": "2025-08-05", "Cupos": 40, "Nº Participantes": 30, "% de asistencia": 0.75, "Duración (hrs)": 4, "Colaborador": "SERCOTEC" },
+            { "Nombre Taller/Curso": "Taller de Contabilidad y Formalización", "Taller/Curso": "Taller", "N° Clase": 1, "Fechas": "2025-08-26", "Cupos": 50, "Nº Participantes": 38, "% de asistencia": 0.76, "Duración (hrs)": 4, "Colaborador": "IP Y CFT SANTO TOMÁS" },
+            { "Nombre Taller/Curso": "Escuela de Emprendimiento Nivel Básico", "Taller/Curso": "Curso", "N° Clase": 3, "Fechas": "2025-08-27", "Cupos": 40, "Nº Participantes": 22, "% de asistencia": 0.55, "Duración (hrs)": 3, "Colaborador": "IMAC" },
+            { "Nombre Taller/Curso": "Formalizando mi Emprendimiento", "Taller/Curso": "Taller", "N° Clase": 1, "Fechas": "2025-09-04", "Cupos": 25, "Nº Participantes": 31, "% de asistencia": 1.24, "Duración (hrs)": 4, "Colaborador": "INSOCAP" },
+            { "Nombre Taller/Curso": "Formalizando mi Emprendimiento", "Taller/Curso": "Taller", "N° Clase": 2, "Fechas": "2025-09-11", "Cupos": 25, "Nº Participantes": 23, "% de asistencia": 0.92, "Duración (hrs)": 4, "Colaborador": "INSOCAP" },
+            { "Nombre Taller/Curso": "Ley de Cumplimiento Tributario", "Taller/Curso": "Taller", "N° Clase": 4, "Fechas": "2025-09-12", "Cupos": 30, "Nº Participantes": 50, "% de asistencia": 1.67, "Duración (hrs)": 2, "Colaborador": "DEDECON" },
+            { "Nombre Taller/Curso": "Formalizando mi Emprendimiento", "Taller/Curso": "Taller", "N° Clase": 3, "Fechas": "2025-09-25", "Cupos": 25, "Nº Participantes": 21, "% de asistencia": 0.84, "Duración (hrs)": 4, "Colaborador": "INSOCAP" },
+            { "Nombre Taller/Curso": "Escuela de Emprendimiento Nivel Básico", "Taller/Curso": "Curso", "N° Clase": 4, "Fechas": "2025-10-01", "Cupos": 40, "Nº Participantes": 21, "% de asistencia": 0.53, "Duración (hrs)": 3, "Colaborador": "IMAC" },
+            { "Nombre Taller/Curso": "Formalizando mi Emprendimiento", "Taller/Curso": "Taller", "N° Clase": 4, "Fechas": "2025-10-02", "Cupos": 25, "Nº Participantes": 20, "% de asistencia": 0.80, "Duración (hrs)": 4, "Colaborador": "INSOCAP" },
+            { "Nombre Taller/Curso": "Formalizando mi Emprendimiento", "Taller/Curso": "Taller", "N° Clase": 5, "Fechas": "2025-10-09", "Cupos": 25, "Nº Participantes": 18, "% de asistencia": 0.72, "Duración (hrs)": 4, "Colaborador": "INSOCAP" },
+            { "Nombre Taller/Curso": "Taller de Contabilidad y Formalización", "Taller/Curso": "Taller", "N° Clase": 2, "Fechas": "2025-10-15", "Cupos": 38, "Nº Participantes": 26, "% de asistencia": 0.68, "Duración (hrs)": 4, "Colaborador": "IP Y CFT SANTO TOMÁS" },
+            { "Nombre Taller/Curso": "Formalizando mi Emprendimiento", "Taller/Curso": "Taller", "N° Clase": 6, "Fechas": "2025-10-16", "Cupos": 25, "Nº Participantes": 23, "% de asistencia": 0.92, "Duración (hrs)": 4, "Colaborador": "INSOCAP" },
+            { "Nombre Taller/Curso": "Escuela de Emprendimiento Nivel Básico", "Taller/Curso": "Curso", "N° Clase": 5, "Fechas": "2025-10-29", "Cupos": 40, "Nº Participantes": 19, "% de asistencia": 0.48, "Duración (hrs)": 3, "Colaborador": "IMAC" },
+            { "Nombre Taller/Curso": "Ley de Cumplimiento Tributario", "Taller/Curso": "Taller", "N° Clase": 5, "Fechas": "2025-11-06", "Cupos": 30, "Nº Participantes": 53, "% de asistencia": 1.77, "Duración (hrs)": 2, "Colaborador": "DEDECON" },
+            { "Nombre Taller/Curso": "AgroMujer Costos y Marketing Digital para el Campo", "Taller/Curso": "Taller", "N° Clase": 1, "Fechas": "2025-11-07", "Cupos": 30, "Nº Participantes": 24, "% de asistencia": 0.80, "Duración (hrs)": 2, "Colaborador": "DUOC UC" },
+            { "Nombre Taller/Curso": "Cultura del Servicio", "Taller/Curso": "Taller", "N° Clase": 1, "Fechas": "2025-11-14", "Cupos": 25, "Nº Participantes": 33, "% de asistencia": 1.32, "Duración (hrs)": 4, "Colaborador": "IP Y CFT SANTO TOMÁS" },
+            { "Nombre Taller/Curso": "Formalizando mi Emprendimiento 2.0", "Taller/Curso": "Taller", "N° Clase": 1, "Fechas": "2025-11-20", "Cupos": 25, "Nº Participantes": 26, "% de asistencia": 1.04, "Duración (hrs)": 4, "Colaborador": "ATRÉVETE SPA" },
+            { "Nombre Taller/Curso": "Formalizando mi Emprendimiento 2.0", "Taller/Curso": "Taller", "N° Clase": 2, "Fechas": "2025-11-25", "Cupos": 25, "Nº Participantes": 20, "% de asistencia": 0.80, "Duración (hrs)": 4, "Colaborador": "ATRÉVETE SPA" },
+            { "Nombre Taller/Curso": "Formalizando mi Emprendimiento 2.0", "Taller/Curso": "Taller", "N° Clase": 3, "Fechas": "2025-11-27", "Cupos": 25, "Nº Participantes": 16, "% de asistencia": 0.64, "Duración (hrs)": 4, "Colaborador": "ATRÉVETE SPA" },
+            { "Nombre Taller/Curso": "Ley de Cumplimiento Tributario", "Taller/Curso": "Taller", "N° Clase": 6, "Fechas": "2025-12-02", "Cupos": 30, "Nº Participantes": 58, "% de asistencia": 1.93, "Duración (hrs)": 2, "Colaborador": "DEDECON" },
+            { "Nombre Taller/Curso": "Ley de Cumplimiento Tributario", "Taller/Curso": "Taller", "N° Clase": 7, "Fechas": "2025-12-02", "Cupos": 30, "Nº Participantes": 50, "% de asistencia": 1.67, "Duración (hrs)": 2, "Colaborador": "DEDECON" }
+        ];
+
+        const logicaProgramas = {
+            "Escuela de Emprendimiento Nivel Básico": { tipo: "Curso", logica: "Grupo Único" },
+            "Academia de Mujeres Empresarias": { tipo: "Curso", logica: "Grupo Único" },
+            "Taller de Contabilidad y Formalización": { tipo: "Taller", logica: "Mismo Grupo" },
+            "Ley de Cumplimiento Tributario": { tipo: "Taller", logica: "Grupos Distintos" },
+            "Formalizando mi Emprendimiento": { tipo: "Taller", logica: "Grupos Distintos" },
+            "AgroMujer Costos y Marketing Digital para el Campo": { tipo: "Taller", logica: "Grupos Distintos" },
+            "Cultura del Servicio": { tipo: "Taller", logica: "Grupos Distintos" },
+            "Formalizando mi Emprendimiento 2.0": { tipo: "Taller", logica: "Grupos Distintos" }
+        };
+
+        function formatMonthYear(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('es-ES', { month: 'short', year: 'numeric' });
+        }
+
+        function formatShortDate(dateString) {
+             const date = new Date(dateString);
+             return `${('0'+date.getUTCDate()).slice(-2)}/${('0'+(date.getUTCMonth()+1)).slice(-2)}`;
+        }
+
+        function groupBy(dataArray, key) {
+            return dataArray.reduce((acc, curr) => {
+                const groupKey = curr[key];
+                if (!acc[groupKey]) acc[groupKey] = [];
+                acc[groupKey].push(curr);
+                return acc;
+            }, {});
+        }
+
+        function getColorAsistencia(value, participantes) {
+            if (participantes === 0) return '#9CA3AF'; 
+            if (value >= 0.75) return '#22C55E'; 
+            if (value >= 0.50) return '#FACC15'; 
+            return '#EF4444'; 
+        }
+
+        // --- CÁLCULOS GLOBALES ---
+        const totalAsistencias = dataOriginal.reduce((acc, curr) => acc + curr["Nº Participantes"], 0);
+        const totalHoras = dataOriginal.reduce((acc, curr) => acc + curr["Duración (hrs)"], 0);
+        const asistenciasAjustadas = dataOriginal.map(d => Math.min(d["% de asistencia"], 1));
+        const avgAsistencia = (asistenciasAjustadas.reduce((acc, curr) => acc + curr, 0) / dataOriginal.length) * 100;
+
+        const dataAgrupada = groupBy(dataOriginal, "Nombre Taller/Curso");
+        let totalInstancias = 0;
+        let totalCuposMeta = 0;
+
+        Object.keys(dataAgrupada).forEach(nombre => {
+            const clases = dataAgrupada[nombre];
+            const logica = logicaProgramas[nombre] || { logica: "Grupos Distintos" };
+            const primerCupo = clases[0].Cupos;
+
+            if (logica.logica === "Grupo Único" || logica.logica === "Mismo Grupo") {
+                totalInstancias += 1;
+                totalCuposMeta += primerCupo;
+            } else {
+                totalInstancias += clases.length;
+                totalCuposMeta += clases.reduce((acc, c) => acc + c.Cupos, 0);
+            }
+        });
+
+        // --- RENDERIZADO DE GRÁFICOS ---
+
+        function renderChartProgramasPorMes() {
+            const ctx = document.getElementById('chartProgramasPorMes').getContext('2d');
+            const instMes = {};
+            const asisMes = {};
+            
+            Object.keys(dataAgrupada).forEach(nombre => {
+                const clases = dataAgrupada[nombre];
+                const logica = logicaProgramas[nombre] || { logica: "Grupos Distintos" };
+                if (logica.logica === "Grupo Único" || logica.logica === "Mismo Grupo") {
+                    const m = formatMonthYear(clases[0].Fechas);
+                    instMes[m] = (instMes[m] || 0) + 1;
+                } else {
+                    clases.forEach(c => {
+                        const m = formatMonthYear(c.Fechas);
+                        instMes[m] = (instMes[m] || 0) + 1;
+                    });
+                }
+            });
+            dataOriginal.forEach(d => {
+                const m = formatMonthYear(d.Fechas);
+                asisMes[m] = (asisMes[m] || 0) + d["Nº Participantes"];
+            });
+
+            const labels = [...new Set([...Object.keys(instMes), ...Object.keys(asisMes)])].sort((a,b) => {
+                const map = { 'ene':0,'feb':1,'mar':2,'abr':3,'may':4,'jun':5,'jul':6,'ago':7,'sep':8,'oct':9,'nov':10,'dic':11 };
+                const [ma, ya] = a.split(' '); const [mb, yb] = b.split(' ');
+                return new Date(ya, map[ma.replace('.','')], 1) - new Date(yb, map[mb.replace('.','')], 1);
+            });
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        { 
+                            label: 'Instancias (Barras)', 
+                            data: labels.map(l => instMes[l]||0), 
+                            backgroundColor: '#3B82F6', 
+                            borderRadius: 5, 
+                            yAxisID: 'y1',
+                            order: 1
+                        },
+                        { 
+                            label: 'Asistentes (Línea Negra)', 
+                            data: labels.map(l => asisMes[l]||0), 
+                            type: 'line', 
+                            borderColor: '#000000', 
+                            backgroundColor: '#000000',
+                            borderWidth: 3,
+                            tension: 0.2, 
+                            yAxisID: 'y2',
+                            pointRadius: 6,
+                            pointBackgroundColor: '#000000',
+                            order: 0,
+                            datalabels: {
+                                display: true,
+                                color: '#000000',
+                                align: 'top',
+                                anchor: 'end',
+                                font: { weight: 'bold', size: 12 },
+                                offset: 8,
+                                formatter: (value) => value
+                            }
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y1: { 
+                            type: 'linear', 
+                            position: 'left', 
+                            beginAtZero: true, 
+                            ticks: { precision: 0 }, 
+                            title: { display: true, text: 'N° Instancias' },
+                            grace: '20%' // MARGEN SUPERIOR PARA ETIQUETAS
+                        },
+                        y2: { 
+                            type: 'linear', 
+                            position: 'right', 
+                            beginAtZero: true, 
+                            grid: { drawOnChartArea: false }, 
+                            title: { display: true, text: 'N° Asistentes' },
+                            grace: '20%' // MARGEN SUPERIOR PARA ETIQUETAS (CORRIGE JULIO)
+                        }
+                    },
+                    plugins: { 
+                        legend: { position: 'bottom' },
+                        tooltip: { mode: 'index', intersect: false }
+                    }
+                }
+            });
+        }
+
+        function renderChartCuposPorColaborador() {
+            const ctx = document.getElementById('chartCuposPorColaborador').getContext('2d');
+            const cuposColab = {};
+            Object.keys(dataAgrupada).forEach(nombre => {
+                const clases = dataAgrupada[nombre];
+                const logica = logicaProgramas[nombre] || { logica: "Grupos Distintos" };
+                const colab = clases[0].Colaborador;
+                if (!cuposColab[colab]) cuposColab[colab] = 0;
+                if (logica.logica === "Grupo Único" || logica.logica === "Mismo Grupo") {
+                    cuposColab[colab] += clases[0].Cupos;
+                } else {
+                    cuposColab[colab] += clases.reduce((acc, c) => acc + c.Cupos, 0);
+                }
+            });
+            const labels = Object.keys(cuposColab);
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: labels.map(l => cuposColab[l]),
+                        backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#14B8A6', '#EC4899', '#34D399']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        datalabels: { display: true, color: '#FFF', font: { weight: 'bold' }, formatter: Math.round }
+                    }
+                }
+            });
+        }
+
+        function renderChartParticipantesPorTipo() {
+            const ctx = document.getElementById('chartParticipantesPorTipo').getContext('2d');
+            let asisCursos = 0, asisTalleres = 0;
+            Object.keys(dataAgrupada).forEach(nombre => {
+                const clases = dataAgrupada[nombre];
+                const logica = logicaProgramas[nombre] || { tipo: "Taller" };
+                const sum = clases.reduce((acc, c) => acc + c["Nº Participantes"], 0);
+                if (logica.tipo === "Curso") asisCursos += sum; else asisTalleres += sum;
+            });
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ["Cursos", "Talleres"],
+                    datasets: [{
+                        label: 'Asistencias',
+                        data: [asisCursos, asisTalleres],
+                        backgroundColor: ['#0B63C5', '#60A5FA'],
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: { 
+                        y: { 
+                            beginAtZero: true,
+                            grace: '20%' // MARGEN SUPERIOR
+                        } 
+                    },
+                    plugins: { 
+                        legend: { display: false },
+                        datalabels: { display: true, anchor: 'end', align: 'top', formatter: (v) => v, color: '#000' }
+                    }
+                }
+            });
+        }
+
+        function mostrarResumen() {
+            document.getElementById('kpi-total-programas').textContent = totalInstancias;
+            document.getElementById('kpi-total-programas-subtext').textContent = `2 Cursos / ${totalInstancias - 2} Talleres`;
+            document.getElementById('kpi-total-personas').textContent = totalAsistencias; 
+            document.getElementById('kpi-avg-asistencia').textContent = avgAsistencia.toFixed(1) + '%';
+            document.getElementById('kpi-total-cupos').textContent = totalCuposMeta;
+            document.getElementById('kpi-total-horas').textContent = totalHoras; 
+            
+            if (!Chart.getChart("chartProgramasPorMes")) renderChartProgramasPorMes();
+            if (!Chart.getChart("chartCuposPorColaborador")) renderChartCuposPorColaborador();
+            if (!Chart.getChart("chartParticipantesPorTipo")) renderChartParticipantesPorTipo();
+            
+            document.getElementById('contenido-resumen').classList.remove('hidden');
+            document.getElementById('contenido-asistencia').classList.add('hidden');
+        }
+
+        function mostrarAsistencia() {
+            const container = document.getElementById('graficos-asistencia-container');
+            container.innerHTML = '';
+            Object.keys(dataAgrupada).forEach((nombre, idx) => {
+                const clases = dataAgrupada[nombre];
+                const colab = clases[0].Colaborador;
+                const meta = clases[0].Cupos;
+                const wrapper = document.createElement('div');
+                wrapper.className = 'card';
+                wrapper.innerHTML = `
+                    <h3 class="chart-title">${nombre}</h3>
+                    <p class="text-sm text-gray-600 text-center">Colaborador: ${colab}</p>
+                    <p class="text-sm text-gray-600 mb-4 text-center">Meta por Clase: ${meta} personas</p>
+                    <canvas id="chart-asis-${idx}" class="mb-6"></canvas>
+                    <div class="overflow-x-auto mt-6">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr><th class="px-4 py-2 text-left text-xs text-gray-500">Clase</th><th class="px-4 py-2 text-left text-xs text-gray-500">Fecha</th><th class="px-4 py-2 text-left text-xs text-gray-500">Part.</th><th class="px-4 py-2 text-left text-xs text-gray-500">%</th></tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                ${clases.map(c => `<tr><td class="px-4 py-2 text-sm">${c['N° Clase']}</td><td class="px-4 py-2 text-sm">${formatShortDate(c.Fechas)}</td><td class="px-4 py-2 text-sm">${c['Nº Participantes']}</td><td class="px-4 py-2 text-sm font-semibold ${c['% de asistencia']>=0.75?'text-green-600':c['% de asistencia']>=0.5?'text-yellow-600':'text-red-600'}">${(c['% de asistencia']*100).toFixed(0)}%</td></tr>`).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                container.appendChild(wrapper);
+                const c = document.getElementById(`chart-asis-${idx}`);
+                const datasets = [{ label:'Part.', data:clases.map(x=>x['Nº Participantes']), backgroundColor:clases.map(x=>getColorAsistencia(x['% de asistencia'], x['Nº Participantes'])), borderRadius:5 }];
+                
+                const esSeguimiento = logicaProgramas[nombre]?.logica === "Grupo Único" || logicaProgramas[nombre]?.logica === "Mismo Grupo";
+                
+                if (esSeguimiento) {
+                    datasets.push({ label:'%', data:clases.map(x=>x['% de asistencia']), type:'line', borderColor:'#000', yAxisID:'y2', pointRadius:4 });
+                }
+                
+                new Chart(c, {
+                    type:'bar', data:{labels:clases.map(x=>`Clase ${x['N° Clase']}`), datasets},
+                    options:{ 
+                        responsive:true, 
+                        scales:{ 
+                            y: { 
+                                beginAtZero:true,
+                                grace: '20%' // MARGEN SUPERIOR PARA ETIQUETAS
+                            }, 
+                            y2: { 
+                                display:datasets.length>1, 
+                                position:'right', 
+                                beginAtZero:true, 
+                                grid:{drawOnChartArea:false},
+                                grace: '20%' // MARGEN SUPERIOR PARA ETIQUETAS
+                            } 
+                        },
+                        plugins:{ 
+                            legend:{display:false}, 
+                            datalabels:{
+                                display: true, 
+                                anchor: 'end', 
+                                align: 'end', 
+                                offset: 2,
+                                formatter: (v, ctx) => {
+                                    if (ctx.dataset.type === 'line') return (v * 100).toFixed(1) + '%';
+                                    if (esSeguimiento) return null;
+                                    return v;
+                                }
+                            } 
+                        }
+                    }
+                });
+            });
+            document.getElementById('contenido-resumen').classList.add('hidden');
+            document.getElementById('contenido-asistencia').classList.remove('hidden');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('nav-resumen').addEventListener('click', () => {
+                document.getElementById('nav-resumen').classList.add('active');
+                document.getElementById('nav-asistencia').classList.remove('active');
+                mostrarResumen();
+            });
+            document.getElementById('nav-asistencia').addEventListener('click', () => {
+                document.getElementById('nav-asistencia').classList.add('active');
+                document.getElementById('nav-resumen').classList.remove('active');
+                mostrarAsistencia();
+            });
+            mostrarResumen();
+        });
+    </script>
+</body>
+</html>
